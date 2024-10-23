@@ -23,7 +23,8 @@ public abstract class HashicorpVault extends Service<HashicorpVaultAccount, Vaul
     public abstract String scheme();
 
     public String defaultImage() {
-        return "quay.io/rh_integration/hashicorp/vault:1.17";
+        //return "quay.io/rh_integration/hashicorp/vault:1.17";
+        return "quay.io/shreya_kajbaje30/hashicorp/vault:1.16";
     }
 
     @Override
