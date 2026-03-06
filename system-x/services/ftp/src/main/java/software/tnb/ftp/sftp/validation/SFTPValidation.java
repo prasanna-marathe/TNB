@@ -59,19 +59,23 @@ public class SFTPValidation implements FileTransferValidation {
             if (client.statExistence(account.baseDir()) == null) {
                 // Try to create the baseDir, handling nested paths
                 String baseDir = account.baseDir();
+		System.out.println("BaseDir "+baseDir);   
                 String[] parts = baseDir.split("/");
+		System.out.println("parts "+parts);   
                 String currentPath = "";
                 for (String part : parts) {
                     if (!part.isEmpty()) {
                         currentPath = currentPath.isEmpty() ? part : currentPath + "/" + part;
                         if (client.statExistence(currentPath) == null) {
                             client.mkdir(currentPath);
+		            System.out.println("currentPath "+currentPath);   
                         }
                     }
                 }
             }
 
             client.mkdir(account.baseDir() + "/" + dirName);
+            System.out.println("dirName "+dirName);   
         } catch (IOException e) {
             fail("Validation could not create directory in SFTP", e);
         }
