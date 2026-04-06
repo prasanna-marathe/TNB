@@ -233,8 +233,10 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
     @Override
     public String mqscConfig() {
         // Change the hardcoded "mqm" user to the uid
-        return super.mqscConfig() + "SET CHLAUTH('DEV.ADMIN.SVRCONN') TYPE(USERMAP) CLNTUSER('admin') USERSRC(MAP) MCAUSER ('" + uid
-            + "') ACTION(REPLACE)\n";
+     return super.mqscConfig() 
+        + "SET CHLAUTH('DEV.ADMIN.SVRCONN') TYPE(USERMAP) CLNTUSER('admin') USERSRC(MAP) MCAUSER ('" + uid + "') ACTION(REPLACE)\n"
+        + "SET CHLAUTH('DEV.APP.SVRCONN') TYPE(USERMAP) CLNTUSER('app') USERSRC(MAP) MCAUSER ('" + uid + "') ACTION(REPLACE)\n"
+        + "ALTER QMGR CHLAUTH(DISABLED)\n";
     }
 
     private void createMqscConfigMap() {
