@@ -16,5 +16,8 @@
 
     <modules>
         <module>docling</module>
+        <module>milvus</module>
+        <module>ollama</module>
+        <module>qdrant</module>
     </modules>
 </project>
