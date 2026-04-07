@@ -232,21 +232,24 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
 
     @Override
     public String mqscConfig() {
-      return super.mqscConfig() 
-        // Channel authentication
+        return super.mqscConfig() 
+        // Step 1: Clear MCAUSER on channels (CRITICAL!)
+        + "ALTER CHANNEL(DEV.APP.SVRCONN) CHLTYPE(SVRCONN) MCAUSER(' ')\n"
+        + "ALTER CHANNEL(DEV.ADMIN.SVRCONN) CHLTYPE(SVRCONN) MCAUSER(' ')\n"
+        // Step 2: Set CHLAUTH to map client users to container UID
         + "SET CHLAUTH('DEV.ADMIN.SVRCONN') TYPE(USERMAP) CLNTUSER('admin') USERSRC(MAP) MCAUSER ('" + uid + "') ACTION(REPLACE)\n"
         + "SET CHLAUTH('DEV.APP.SVRCONN') TYPE(USERMAP) CLNTUSER('app') USERSRC(MAP) MCAUSER ('" + uid + "') ACTION(REPLACE)\n"
         + "SET CHLAUTH('DEV.APP.SVRCONN') TYPE(BLOCKUSER) USERLIST('nobody') ACTION(REPLACE)\n"
-        // Disable connection authentication
+        // Step 3: Disable connection authentication (required for OpenShift)
         + "ALTER QMGR CONNAUTH(' ')\n"
         + "REFRESH SECURITY TYPE(CONNAUTH)\n"
-        // Disable channel auth
+        // Step 4: Disable channel authentication
         + "ALTER QMGR CHLAUTH(DISABLED)\n"
-        // Disable SSL requirements on channels
+        // Step 5: Allow non-SSL connections
         + "ALTER CHANNEL(DEV.APP.SVRCONN) CHLTYPE(SVRCONN) SSLCAUTH(OPTIONAL) SSLCIPH(' ')\n"
         + "ALTER CHANNEL(DEV.ADMIN.SVRCONN) CHLTYPE(SVRCONN) SSLCAUTH(OPTIONAL) SSLCIPH(' ')\n"
-        // Refresh everything
-        + "REFRESH SECURITY(*)\n";
+        // Step 6: Refresh all security settings
+        + "REFRESH SECURITY(*)\n"; 
     }
 
     private void createMqscConfigMap() {
