@@ -233,19 +233,19 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
     @Override
     public String mqscConfig() {
       return super.mqscConfig() 
-        // Channel authentication - map client users to container UID
+        // Channel authentication
         + "SET CHLAUTH('DEV.ADMIN.SVRCONN') TYPE(USERMAP) CLNTUSER('admin') USERSRC(MAP) MCAUSER ('" + uid + "') ACTION(REPLACE)\n"
         + "SET CHLAUTH('DEV.APP.SVRCONN') TYPE(USERMAP) CLNTUSER('app') USERSRC(MAP) MCAUSER ('" + uid + "') ACTION(REPLACE)\n"
         + "SET CHLAUTH('DEV.APP.SVRCONN') TYPE(BLOCKUSER) USERLIST('nobody') ACTION(REPLACE)\n"
-        // Disable connection authentication (for development/testing)
+        // Disable connection authentication
         + "ALTER QMGR CONNAUTH(' ')\n"
         + "REFRESH SECURITY TYPE(CONNAUTH)\n"
-        // Optional: Disable channel auth completely
+        // Disable channel auth
         + "ALTER QMGR CHLAUTH(DISABLED)\n"
-        // Ensure listener is active
-        + "DEFINE LISTENER(SYSTEM.LISTENER.TCP.1) TRPTYPE(TCP) PORT(1414) CONTROL(QMGR) REPLACE\n"
-        + "START LISTENER(SYSTEM.LISTENER.TCP.1)\n"
-        // Refresh all security settings
+        // Disable SSL requirements on channels
+        + "ALTER CHANNEL(DEV.APP.SVRCONN) CHLTYPE(SVRCONN) SSLCAUTH(OPTIONAL) SSLCIPH(' ')\n"
+        + "ALTER CHANNEL(DEV.ADMIN.SVRCONN) CHLTYPE(SVRCONN) SSLCAUTH(OPTIONAL) SSLCIPH(' ')\n"
+        // Refresh everything
         + "REFRESH SECURITY(*)\n";
     }
 
