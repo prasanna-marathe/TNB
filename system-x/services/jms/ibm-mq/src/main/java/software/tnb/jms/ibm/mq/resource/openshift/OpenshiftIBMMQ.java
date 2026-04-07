@@ -232,24 +232,32 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
 
     @Override
     public String mqscConfig() {
-        return super.mqscConfig() 
-        // Step 1: Clear MCAUSER on channels (CRITICAL!)
-        + "ALTER CHANNEL(DEV.APP.SVRCONN) CHLTYPE(SVRCONN) MCAUSER(' ')\n"
-        + "ALTER CHANNEL(DEV.ADMIN.SVRCONN) CHLTYPE(SVRCONN) MCAUSER(' ')\n"
-        // Step 2: Set CHLAUTH to map client users to container UID
-        + "SET CHLAUTH('DEV.ADMIN.SVRCONN') TYPE(USERMAP) CLNTUSER('admin') USERSRC(MAP) MCAUSER ('" + uid + "') ACTION(REPLACE)\n"
-        + "SET CHLAUTH('DEV.APP.SVRCONN') TYPE(USERMAP) CLNTUSER('app') USERSRC(MAP) MCAUSER ('" + uid + "') ACTION(REPLACE)\n"
-        + "SET CHLAUTH('DEV.APP.SVRCONN') TYPE(BLOCKUSER) USERLIST('nobody') ACTION(REPLACE)\n"
-        // Step 3: Disable connection authentication (required for OpenShift)
+       // Get base permissions from parent
+    String baseConfig = super.mqscConfig();
+    // Add OpenShift-specific configuration
+    // IMPORTANT: Order matters! Execute in this specific sequence
+    return baseConfig
+        // 1. First, disable all authentication to allow changes
+        + "ALTER QMGR CHLAUTH(DISABLED)\n"
         + "ALTER QMGR CONNAUTH(' ')\n"
         + "REFRESH SECURITY TYPE(CONNAUTH)\n"
-        // Step 4: Disable channel authentication
-        + "ALTER QMGR CHLAUTH(DISABLED)\n"
-        // Step 5: Allow non-SSL connections
+        
+        // 2. Clear MCAUSER on channels
+        + "ALTER CHANNEL(DEV.APP.SVRCONN) CHLTYPE(SVRCONN) MCAUSER(' ')\n"
+        + "ALTER CHANNEL(DEV.ADMIN.SVRCONN) CHLTYPE(SVRCONN) MCAUSER(' ')\n"
+        
+        // 3. Remove SSL requirements
         + "ALTER CHANNEL(DEV.APP.SVRCONN) CHLTYPE(SVRCONN) SSLCAUTH(OPTIONAL) SSLCIPH(' ')\n"
         + "ALTER CHANNEL(DEV.ADMIN.SVRCONN) CHLTYPE(SVRCONN) SSLCAUTH(OPTIONAL) SSLCIPH(' ')\n"
-        // Step 6: Refresh all security settings
-        + "REFRESH SECURITY(*)\n"; 
+        
+        // 4. Set CHLAUTH mappings (even though CHLAUTH is disabled, set them for completeness)
+        + "SET CHLAUTH('DEV.ADMIN.SVRCONN') TYPE(USERMAP) CLNTUSER('admin') USERSRC(MAP) MCAUSER('" + uid + "') ACTION(REPLACE)\n"
+        + "SET CHLAUTH('DEV.APP.SVRCONN') TYPE(USERMAP) CLNTUSER('app') USERSRC(MAP) MCAUSER('" + uid + "') ACTION(REPLACE)\n"
+        + "SET CHLAUTH('DEV.APP.SVRCONN') TYPE(BLOCKUSER) USERLIST('nobody') ACTION(REPLACE)\n"
+        + "SET CHLAUTH('DEV.ADMIN.SVRCONN') TYPE(BLOCKUSER) USERLIST('nobody') ACTION(REPLACE)\n"
+        
+        // 5. Final security refresh
+        + "REFRESH SECURITY(*)\n";
     }
 
     @Override 
