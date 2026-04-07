@@ -252,6 +252,17 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
         + "REFRESH SECURITY(*)\n"; 
     }
 
+    @Override 
+    public Map<String, String> containerEnvironment() {
+    // Override to remove SSL cipher suite for non-SSL connections
+    Map<String, String> env = new java.util.HashMap<>();
+    env.put("LICENSE", "accept");
+    env.put("MQ_QMGR_NAME", account().queueManager());
+    env.put("MQ_APP_PASSWORD", account().password());
+    // Don't add AMQ_SSL_WEAK_CIPHER_ENABLE - it causes cipher suite mismatch
+    return env;
+}
+
     private void createMqscConfigMap() {
         // @formatter:off
         LOG.debug("Creating configmap {}", CONFIG_MAP_NAME);
