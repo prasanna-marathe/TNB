@@ -84,7 +84,7 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
         //if (portForward != null && portForward.isAlive()) {
          //   LOG.debug("Closing port-forward");
          //   IOUtils.closeQuietly(portForward);
-        }
+        //}
         //NetworkUtils.releasePort(localPort);
     }
 
