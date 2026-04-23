@@ -135,7 +135,7 @@
         </dependency>
         <dependency>
             <groupId>software.tnb</groupId>
-            <artifactId>system-x-docling</artifactId>
+            <artifactId>system-x-docling-serve</artifactId>
         </dependency>
         <dependency>
             <groupId>software.tnb</groupId>
@@ -283,6 +283,10 @@
         </dependency>
         <dependency>
             <groupId>software.tnb</groupId>
+            <artifactId>system-x-mina</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.tnb</groupId>
             <artifactId>system-x-mllp</artifactId>
         </dependency>
         <dependency>
@@ -304,6 +308,10 @@
         <dependency>
             <groupId>software.tnb</groupId>
             <artifactId>system-x-ollama</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.tnb</groupId>
+            <artifactId>system-x-openai</artifactId>
         </dependency>
         <dependency>
             <groupId>software.tnb</groupId>
