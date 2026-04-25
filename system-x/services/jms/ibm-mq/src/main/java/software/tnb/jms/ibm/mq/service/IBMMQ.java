@@ -62,7 +62,11 @@ public abstract class IBMMQ extends ConfigurableService<IBMMQAccount, Connection
 
     public void openResources() {
         try {
+            // Force IPv4 to avoid IPv6/IPv4 mismatch on OpenShift
+            System.setProperty("java.net.preferIPv4Stack", "true");
+            System.setProperty("java.net.preferIPv4Addresses", "true");
             // IBM MQ creates a log file by default, so redirect it to target
+            
             System.setProperty("com.ibm.msg.client.commonservices.log.outputName", new File("target/ibmmq.log").getAbsolutePath());
             MQConnectionFactory connectionFactory = new MQConnectionFactory();
             connectionFactory.setHostName(clientHostname());
