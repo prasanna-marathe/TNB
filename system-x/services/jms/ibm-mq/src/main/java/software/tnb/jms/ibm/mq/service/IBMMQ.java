@@ -18,16 +18,16 @@ import java.util.Map;
 import jakarta.jms.Connection;
 import jakarta.jms.JMSException;
 
-// Static initializer to force IPv4 before any networking code runs
-// This prevents IPv6/IPv4 mismatch issues on OpenShift dual-stack clusters
-static {
+public abstract class IBMMQ extends ConfigurableService<IBMMQAccount, Connection, IBMMQValidation, IBMMQConfiguration> implements WithDockerImage {
+    private static final Logger LOG = LoggerFactory.getLogger(IBMMQ.class);
+
+    // Static initializer to force IPv4 before any networking code runs
+    // This prevents IPv6/IPv4 mismatch issues on OpenShift dual-stack clusters
+    static {
         System.setProperty("java.net.preferIPv4Stack", "true");
         System.setProperty("java.net.preferIPv4Addresses", "true");
         LOG.info("Forced IPv4 networking for IBM MQ connections");
     }
-
-public abstract class IBMMQ extends ConfigurableService<IBMMQAccount, Connection, IBMMQValidation, IBMMQConfiguration> implements WithDockerImage {
-    private static final Logger LOG = LoggerFactory.getLogger(IBMMQ.class);
 
     protected static final int DEFAULT_PORT = 1414;
     public static final String MQSC_COMMAND_FILES_LOCATION = "/etc/mqm";
