@@ -50,6 +50,7 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
     private static final String CONFIG_MAP_NAME = "tnb-ibm-mq-config";
     private static final String CONFIG_MAP_VOLUME_NAME = "config";
     private long uid;
+    private Integer nodePort;
 
     @Override
     public void undeploy() {
@@ -153,37 +154,34 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
 
         ports.forEach((key, value) -> {
             LOG.debug("Creating service {}", key);
-            OpenshiftClient.get().services().resource(
-                new ServiceBuilder()
-                    .editOrNewMetadata()
-                        .withName(key)
-                        .addToLabels(OpenshiftConfiguration.openshiftDeploymentLabel(), name())
-                    .endMetadata()
-                    .editOrNewSpec().addToSelector(OpenshiftConfiguration.openshiftDeploymentLabel(), name())
-
+            ServiceBuilder serviceBuilder = new ServiceBuilder()
+                .editOrNewMetadata()
+                    .withName(key)
+                    .addToLabels(OpenshiftConfiguration.openshiftDeploymentLabel(), name())
+                .endMetadata()
+                .editOrNewSpec()
+                    .addToSelector(OpenshiftConfiguration.openshiftDeploymentLabel(), name())
                     .addToPorts(new ServicePortBuilder()
                         .withName(key)
                         .withPort(value)
                         .withTargetPort(new IntOrString(value))
                         .build())
-                    .endSpec()
-                    .build()
-            ).serverSideApply();
+                .endSpec();
+            
+            // Use NodePort for MQ service to allow external access
+            if (key.equals(name())) {
+                serviceBuilder.editSpec().withType("NodePort").endSpec();
+            }
+            
+            OpenshiftClient.get().services().resource(serviceBuilder.build()).serverSideApply();
+            
+            // Store the NodePort for MQ service
+            if (key.equals(name())) {
+                nodePort = OpenshiftClient.get().services().withName(name()).get()
+                    .getSpec().getPorts().get(0).getNodePort();
+                LOG.info("IBM MQ service exposed on NodePort: {}", nodePort);
+            }
         });
-
-        // Create route for MQ port (for external access)
-        OpenshiftClient.get().routes().resource(new RouteBuilder()
-            .withNewMetadata()
-                .withName(name())
-                .addToLabels(OpenshiftConfiguration.openshiftDeploymentLabel(), name())
-            .endMetadata()
-            .withNewSpec()
-                .withPort(new RoutePortBuilder().withNewTargetPort(DEFAULT_PORT).build())
-                .withTls(new TLSConfigBuilder().withTermination("passthrough").build())
-            .withTo(new RouteTargetReferenceBuilder().withKind("Service").withName(name()).build())
-            .endSpec()
-            .build()
-        ).serverSideApply();
 
         OpenshiftClient.get().routes().resource(new RouteBuilder()
             .withNewMetadata()
@@ -223,8 +221,7 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
 
     @Override
     public int clientPort() {
-        // Routes with passthrough TLS use port 443
-        return 443;
+        return nodePort != null ? nodePort : DEFAULT_PORT;
     }
 
     @Override
@@ -289,8 +286,14 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
 
     @Override
     public String externalHostname() {
-        // Get the route hostname for external access
-        return OpenshiftClient.get().routes().withName(name()).get().getSpec().getHost();
+        // Get any node's external IP or hostname
+        return OpenshiftClient.get().nodes().list().getItems().stream()
+            .filter(node -> node.getStatus().getAddresses() != null)
+            .flatMap(node -> node.getStatus().getAddresses().stream())
+            .filter(addr -> "ExternalIP".equals(addr.getType()) || "Hostname".equals(addr.getType()))
+            .map(addr -> addr.getAddress())
+            .findFirst()
+            .orElse("localhost");
     }
 
     /**
