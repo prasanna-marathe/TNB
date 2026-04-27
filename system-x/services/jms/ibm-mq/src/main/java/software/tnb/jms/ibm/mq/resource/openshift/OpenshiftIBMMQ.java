@@ -6,8 +6,6 @@ import software.tnb.common.deployment.WithExternalHostname;
 import software.tnb.common.deployment.WithInClusterHostname;
 import software.tnb.common.deployment.WithName;
 import software.tnb.common.openshift.OpenshiftClient;
-import software.tnb.common.utils.IOUtils;
-import software.tnb.common.utils.NetworkUtils;
 import software.tnb.common.utils.WaitUtils;
 import software.tnb.jms.ibm.mq.service.IBMMQ;
 import software.tnb.jms.ibm.mq.validation.IBMMQValidation;
@@ -38,7 +36,6 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
-import io.fabric8.kubernetes.client.PortForward;
 import io.fabric8.kubernetes.client.dsl.PodResource;
 import io.fabric8.openshift.api.model.RouteBuilder;
 import io.fabric8.openshift.api.model.RoutePortBuilder;
@@ -52,8 +49,6 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
     private static final int CONSOLE_PORT = 9443;
     private static final String CONFIG_MAP_NAME = "tnb-ibm-mq-config";
     private static final String CONFIG_MAP_VOLUME_NAME = "config";
-    private PortForward portForward;
-    private int localPort;
     private long uid;
 
     @Override
@@ -72,27 +67,17 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
 
     @Override
     public void openResources() {
-        //localPort = NetworkUtils.getFreePort();
-        //LOG.debug("Creating port-forward to {} for port {}", name(), DEFAULT_PORT);
-        //portForward = OpenshiftClient.get().services().withName(name()).portForward(DEFAULT_PORT, localPort);
         super.openResources();
     }
 
     @Override
     public void closeResources() {
         super.closeResources();
-        if (portForward != null && portForward.isAlive()) {
-            LOG.debug("Closing port-forward");
-            IOUtils.closeQuietly(portForward);
-        }
-        NetworkUtils.releasePort(localPort);
     }
 
     @Override
     protected String clientHostname() {
-        //return externalHostname();
-        //return name() + "." + OpenshiftClient.get().getNamespace() + ".svc.cluster.local";
-        return inClusterHostname();
+        return externalHostname();
     }
 
     @Override
@@ -186,6 +171,20 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
             ).serverSideApply();
         });
 
+        // Create route for MQ port (for external access)
+        OpenshiftClient.get().routes().resource(new RouteBuilder()
+            .withNewMetadata()
+                .withName(name())
+                .addToLabels(OpenshiftConfiguration.openshiftDeploymentLabel(), name())
+            .endMetadata()
+            .withNewSpec()
+                .withPort(new RoutePortBuilder().withNewTargetPort(DEFAULT_PORT).build())
+                .withTls(new TLSConfigBuilder().withTermination("passthrough").build())
+            .withTo(new RouteTargetReferenceBuilder().withKind("Service").withName(name()).build())
+            .endSpec()
+            .build()
+        ).serverSideApply();
+
         OpenshiftClient.get().routes().resource(new RouteBuilder()
             .withNewMetadata()
                 .withName(name() + "-console")
@@ -224,8 +223,8 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
 
     @Override
     public int clientPort() {
-        //return localPort;
-        return DEFAULT_PORT; // Use actual port, not local port
+        // Routes with passthrough TLS use port 443
+        return 443;
     }
 
     @Override
@@ -290,7 +289,8 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
 
     @Override
     public String externalHostname() {
-        return "localhost";
+        // Get the route hostname for external access
+        return OpenshiftClient.get().routes().withName(name()).get().getSpec().getHost();
     }
 
     /**
