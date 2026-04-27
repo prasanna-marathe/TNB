@@ -91,7 +91,8 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
     @Override
     protected String clientHostname() {
         //return externalHostname();
-        return name() + "." + OpenshiftClient.get().getNamespace() + ".svc.cluster.local";
+        //return name() + "." + OpenshiftClient.get().getNamespace() + ".svc.cluster.local";
+        return inClusterHostname();
     }
 
     @Override
