@@ -286,14 +286,16 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
 
     @Override
     public String externalHostname() {
-        // Get any node's external IP or hostname
-        return OpenshiftClient.get().nodes().list().getItems().stream()
-            .filter(node -> node.getStatus().getAddresses() != null)
-            .flatMap(node -> node.getStatus().getAddresses().stream())
-            .filter(addr -> "ExternalIP".equals(addr.getType()) || "Hostname".equals(addr.getType()))
-            .map(addr -> addr.getAddress())
-            .findFirst()
-            .orElse("localhost");
+        // Extract hostname from the API server URL
+        // e.g., https://api.ppc64le-qe56c.ibmp.psi.redhat.com:6443/ -> api.ppc64le-qe56c.ibmp.psi.redhat.com
+        String masterUrl = OpenshiftClient.get().getMasterUrl().toString();
+        try {
+            java.net.URL url = new java.net.URL(masterUrl);
+            return url.getHost();
+        } catch (java.net.MalformedURLException e) {
+            LOG.warn("Failed to parse master URL: {}", masterUrl, e);
+            return "localhost";
+        }
     }
 
     /**
@@ -321,3 +323,4 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
         }
     }
 }
+
