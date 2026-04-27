@@ -72,9 +72,9 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
 
     @Override
     public void openResources() {
-        localPort = NetworkUtils.getFreePort();
-        LOG.debug("Creating port-forward to {} for port {}", name(), DEFAULT_PORT);
-        portForward = OpenshiftClient.get().services().withName(name()).portForward(DEFAULT_PORT, localPort);
+        //localPort = NetworkUtils.getFreePort();
+        //LOG.debug("Creating port-forward to {} for port {}", name(), DEFAULT_PORT);
+        //portForward = OpenshiftClient.get().services().withName(name()).portForward(DEFAULT_PORT, localPort);
         super.openResources();
     }
 
@@ -90,7 +90,8 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
 
     @Override
     protected String clientHostname() {
-        return externalHostname();
+        //return externalHostname();
+        return name() + "." + OpenshiftClient.get().getNamespace() + ".svc.cluster.local";
     }
 
     @Override
@@ -222,7 +223,8 @@ public class OpenshiftIBMMQ extends IBMMQ implements OpenshiftDeployable, WithNa
 
     @Override
     public int clientPort() {
-        return localPort;
+        //return localPort;
+        return DEFAULT_PORT; // Use actual port, not local port
     }
 
     @Override
